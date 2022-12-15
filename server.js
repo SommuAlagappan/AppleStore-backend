@@ -17,32 +17,26 @@ app.use(
   })
 );
 
-
-// Post product
-app.post("/product",  async function (req, res) {
-  try {
-    // Step1: Create a connection between Nodejs and MongoDB
-    const connection = await mongoClient.connect(URL);
-
-    // Step2: Select the DB
-    const db = connection.db(DB);
-
-    // Step3: Select the collection
-    // Step4: Do the operation (Create,Read,Update and Delete)
-    await db.collection("products").insertOne(req.body);
-
-    // Step5: Close the connection
-    await connection.close();
-    res.status(200).json({ message: "Product inserted successfully" });
-  } catch (error) {
-    console.log(error);
-    //If any error throw error
-    res.status(500).json({ message: "Something went wrong" });
+ //Authenticate
+ let authenticate = (req, res, next) => {
+  // console.log(req.headers)
+  if (req.headers.authorization) {
+    try {
+      let decode = jwt.verify(req.headers.authorization, process.env.SECRET);
+      if (decode) {
+        next();
+      }
+    } catch (error) {
+      console.log(error);
+      res.status(401).json("Unauthorised");
+    }
+  } else {
+    res.status(401).json("Unauthorised");
   }
-});
+};
 
 // Get products
-app.get("/products",  async function (req, res) {
+app.get("/products", authenticate,  async function (req, res) {
   try {
     const connection = await mongoClient.connect(URL);
 
@@ -60,7 +54,7 @@ app.get("/products",  async function (req, res) {
 });
 
 // Get productbyID
-app.get("/product/:id",  async function (req, res) {
+app.get("/product/:id", authenticate,  async function (req, res) {
   try {
     const connection = await mongoClient.connect(URL);
 
@@ -79,51 +73,9 @@ app.get("/product/:id",  async function (req, res) {
   }
 });
 
-//Put product
-app.put("/product/:id",  async function (req, res) {
-  try {
-    const connection = await mongoClient.connect(URL);
-
-    const db = connection.db(DB);
-
-    let resUser = await db
-      .collection("products")
-      .findOneAndUpdate(
-        { _id: mongodb.ObjectId(req.params.id) },
-        { $set: req.body }
-      );
-
-    await connection.close();
-
-    res.json({ message: "Product details updated successfully" });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Something went wrong" });
-  }
-});
-
-//Delete product
-app.delete("/product/:id",  async function (req, res) {
-  try {
-    const connection = await mongoClient.connect(URL);
-
-    const db = connection.db(DB);
-
-    let resUser = await db
-      .collection("products")
-      .findOneAndDelete({ _id: mongodb.ObjectId(req.params.id) });
-
-    await connection.close();
-
-    res.json({ message: "Product deleted successfully" });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Something went wrong" });
-  }
-});
 
 //Register user
-app.post("/register", async function (req, res) {
+app.post("/register",  async function (req, res) {
   try {
     const connection = await mongoClient.connect(URL);
     const db = connection.db(DB);
